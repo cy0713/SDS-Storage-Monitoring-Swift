@@ -95,9 +95,7 @@ class GaugeInt(Instrument):
     def append_data(self, groupname, line, mo):
         logger.info("groupingtail.instruments.gaugeint.append_data line %s\n", line)
         if self.regex_group:
-            logger.info("groupingtail.instruments.gaugeint.append_data regex_group %s mo.groupdict %s\n",
-                        self.regex_group, mo.groupdict)
-            value = self.value_cast(mo.groupdict.get(self.regex_group))
+            value = self.value_cast(mo.groupdict().get(self.regex_group))
         else:
             logger.info("groupingtail.instruments.gaugeint.append_data no regex_group line %s\n", line)
             value = self.value_cast(mo.groups()[0])
@@ -131,7 +129,7 @@ class CounterSum(Instrument):
 class Max(GaugeInt):
     def append_data(self, groupname, line, mo):
         if self.regex_group:
-            value = self.value_cast(mo.groupdict.get(self.regex_group))
+            value = self.value_cast(mo.groupdict().get(self.regex_group))
         else:
             value = self.value_cast(mo.groups()[0])
         current = self.data.get(groupname, None)

@@ -1,23 +1,21 @@
-
-# small commandline version for debugging. Takes a .json file with the config
-
 import optparse
 import json
 from time import sleep
 from pretaweb.collectd.groupingtail.conftools import read_config
 
 
+# small commandline version for debugging. Takes a .json file with the config
 class CollectdConfig(object):
-    """
-    Quacks like collectd Config object.
-    """
+    # Quacks like collectd Config object.
+
     def __init__(self, key, values, children):
         self.key = key
         self.values = (values,)
         self.children = [
             CollectdConfig(children_key, children_values, children_children)
             for children_key, children_values, children_children in children
-        ]
+            ]
+
 
 def main():
     p = optparse.OptionParser()
@@ -31,7 +29,7 @@ def main():
     files = read_config(config)
     while True:
         sleep(5)
-        #update
+        # update
         for f in files:
             f["grouping_tail"].update()
 
@@ -45,5 +43,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-

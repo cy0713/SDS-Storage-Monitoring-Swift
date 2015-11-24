@@ -32,7 +32,7 @@ class GroupingTail(object):
     def __init__(self, filepath, groupby, groupname=None):
         self.groupmatch = re.compile(groupby)
         logger.info("groupingtail.groupingtail.constructor %s groupby %s groupmatch %s\n" % (
-        filepath, groupby, self.groupmatch.pattern))
+                        filepath, groupby, self.groupmatch.pattern))
         # write an offset file so that we start somewhat at the end of the file
 
         # either filepath is a path or a syslogd url
@@ -114,5 +114,5 @@ class GroupingTail(object):
             for groupname, value in instrument.read():
                 metric_name = "%s.%s" % (groupname, instance_name)
                 logger.info(
-                    "groupingtail.groupingtail.read_metrics metric %s %s %s\n" % (metric_name, valuetype, value))
+                    "groupingtail.groupingtail.read_metrics metric read %s %s %s\n" % (metric_name, valuetype, value))
                 yield (metric_name, valuetype, value)

@@ -2,6 +2,7 @@ import re
 from datetime import datetime
 import logging
 import logging.handlers
+from collections import defaultdict
 
 logger = logging.getLogger("CAMAMILLA")
 
@@ -86,14 +87,39 @@ class GaugeInt(Instrument):
         kwargs["value_cast"] = (lambda x: int(x) % NUM32)
         super(GaugeInt, self).__init__(*args, **kwargs)
 
+    def reset(self):
+        super(GaugeInt, self).reset()
+        self.data = defaultdict(list)
+        self.groups = {}
+
     def read(self):
-        values = super(GaugeInt, self).read()
-        logger.info("groupingtail.instruments.gaugeint.read values %s\n", values)
+        logger.info("groupingtail.instruments.gaugeint.read before super\n")
+        data_list = super(GaugeInt, self).read()
+        logger.info("groupingtail.instruments.gaugeint.read values %s\n", data_list)
+
+        samples = []
+        for groupname, values_list in data_list:
+            for value in values_list:
+                samples.append((groupname, value))
+
         self.reset()
-        return values
+        logger.info("groupingtail.instruments.gaugeint.read samples %s data %s\n", samples, self.data.items())
+        return samples
+
+    def normalise(self):
+        # Create newdata with only the members of self.groups and wrap around large integers
+        newdata = defaultdict(list)
+        logger.info("groupingtail.instruments.gaugeint.normalise group.keys %s\n" % (self.groups.keys()))
+        for groupname in self.groups.keys():
+            sample_list = list()
+            for sample in self.data[groupname]:
+                 sample_list.append(self.value_cast(sample))
+            newdata[groupname] = sample_list
+            logger.info("groupingtail.instruments.gaugeint.normalise keys %s data %s normalized %s\n" % (
+            self.groups.keys(), self.data[groupname], newdata[groupname]))
+        self.data = newdata
 
     def append_data(self, groupname, line, mo):
-        logger.info("groupingtail.instruments.gaugeint.append_data line %s\n", line)
         if self.regex_group:
             value = self.value_cast(mo.groupdict().get(self.regex_group))
         else:
@@ -101,7 +127,7 @@ class GaugeInt(Instrument):
             value = self.value_cast(mo.groups()[0])
         logger.info("groupingtail.instruments.gaugeint.append_data regex_group %s data %s value %s line %s\n",
                     self.regex_group, self.data.items(), value, line)
-        self.data[groupname] = value
+        self.data[groupname].append(value)
 
 
 class CounterInc(Instrument):

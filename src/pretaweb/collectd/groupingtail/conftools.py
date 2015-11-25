@@ -1,6 +1,6 @@
 import logging
 from groupingtail import GroupingTail
-from instruments import NUM32, CounterInc, CounterSum, GaugeInt
+from instruments import NUM32, CounterInc, CounterSum, GaugeInt, DeriveCounter
 
 _getConfFirstValue_NOVAL = object()
 
@@ -47,10 +47,18 @@ def configure_gaugeint(conf):
     return GaugeInt(regex, value_cast=value_cast, groupname=groupname)
 
 
+def configure_derivecounter(conf):
+    regex = getConfFirstValue(conf, "Regex")
+    groupname = getConfFirstValue(conf, "GroupName", None)
+    value_cast = (lambda x: int(x) % NUM32)
+    return DeriveCounter(regex, value_cast=value_cast, groupname=groupname)
+
+
 INSTRUMENTS = {
     "CounterInc": configure_counterinc,
     "CounterSumInt": configure_countersumint,
-    "GaugeInt": configure_gaugeint
+    "GaugeInt": configure_gaugeint,
+    "DeriveCounter": configure_derivecounter
 }
 
 

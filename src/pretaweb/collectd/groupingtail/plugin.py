@@ -3,7 +3,7 @@ import logging
 import logging.handlers
 from conftools import read_config
 
-log_file_trace_path = "/home/swift/pretaweb.collectd.groupingtail/src/pretaweb/collectd/custom_collectd_groupingtail.log"
+log_file_trace_path = "/home/swift/SDS-Storage-Monitoring-Swift/src/pretaweb/collectd/custom_collectd_groupingtail.log"
 
 logger = logging.getLogger("CAMAMILLA")
 logger.setLevel(logging.INFO)
@@ -23,7 +23,7 @@ files = None
 def configure(conf):
     global files
     files = read_config(conf)
-    logger.info("groupingtail.plugin.configure %d\n" % (len(files)))
+    logger.info("groupingtail.plugin.configure files to check %d\n" % (len(files)))
 
 
 #

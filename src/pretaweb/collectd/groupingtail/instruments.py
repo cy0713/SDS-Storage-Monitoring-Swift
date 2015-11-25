@@ -1,5 +1,6 @@
 import re
 from datetime import datetime
+import time
 import logging
 import logging.handlers
 from collections import defaultdict
@@ -161,3 +162,32 @@ class Max(GaugeInt):
         current = self.data.get(groupname, None)
         if value > current or current is None:
             self.data[groupname] = value
+
+
+class DeriveCounter(CounterSum):
+    def __init__(self, *args, **kwargs):
+        kwargs["value_cast"] = (lambda x: int(x) % NUM32)
+        super(DeriveCounter, self).__init__(*args, **kwargs)
+        self.last_read = None
+
+    def reset(self):
+        super(DeriveCounter, self).reset()
+        self.last_read = None
+
+    def read(self):
+        elapsed = 0
+        now = time.time()
+        if self.last_read is not None:
+            elapsed = now - self.last_read
+        self.last_read = now
+        if elapsed <= 0:
+            elapsed = 1.0
+        logger.info("groupingtail.instruments.DeriveCounter.read last %s now %s elapsed %f\n", str(self.last_read), str(now), elapsed)
+        data_list = super(DeriveCounter, self).read()
+
+        samples = []
+        for groupname, value in data_list:
+            samples.append((groupname, value/elapsed))
+
+        logger.info("groupingtail.instruments.DeriveCounter.read samples %s data %s\n", samples, self.data.items())
+        return samples

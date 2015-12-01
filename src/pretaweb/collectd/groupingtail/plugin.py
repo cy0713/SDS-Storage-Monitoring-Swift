@@ -3,11 +3,11 @@ import logging
 import logging.handlers
 from conftools import read_config
 
-log_file_trace_path = "/home/swift/SDS-Storage-Monitoring-Swift/src/pretaweb/collectd/custom_collectd_groupingtail.log"
+log_file_trace_path = "/var/log/collectd_groupingtail_plugin.log"
 
-logger = logging.getLogger("CAMAMILLA")
+logger = logging.getLogger("GROUPINGTAIL")
 logger.setLevel(logging.INFO)
-handler = logging.handlers.RotatingFileHandler(log_file_trace_path, maxBytes=20000000, backupCount=10)
+handler = logging.handlers.RotatingFileHandler(log_file_trace_path, maxBytes=10000000, backupCount=1)
 handler.setLevel(logging.INFO)
 formatter = logging.Formatter("[%(levelname)s];[%(thread)d];%(asctime)s;%(message)s")
 handler.setFormatter(formatter)
@@ -49,7 +49,7 @@ def read():
             logger.info("groupingtail.plugin.read dispatch metric %s %s %s\n" % (metric_name, value_type, value))
             v = collectd.Values(
                 plugin='groupingtail',
-                plugin_instance="%s.%s" % (instance_name, metric_name),
+                plugin_instance="%s*%s" % (instance_name, metric_name),
                 type=value_type,
                 values=(value,)
             )

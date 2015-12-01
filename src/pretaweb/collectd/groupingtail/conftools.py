@@ -4,7 +4,7 @@ from instruments import NUM32, CounterInc, CounterSum, GaugeInt, DeriveCounter
 
 _getConfFirstValue_NOVAL = object()
 
-logger = logging.getLogger("CAMAMILLA")
+logger = logging.getLogger("GROUPINGTAIL")
 
 
 def getConfFirstValue(ob, key, default=_getConfFirstValue_NOVAL):

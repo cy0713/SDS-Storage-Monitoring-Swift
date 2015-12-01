@@ -5,7 +5,7 @@ import logging
 import logging.handlers
 from collections import defaultdict
 
-logger = logging.getLogger("CAMAMILLA")
+logger = logging.getLogger("GROUPINGTAIL")
 
 NUM32 = 2 ** 32
 
@@ -49,6 +49,7 @@ class Instrument(object):
 
     def read(self):
         # Return the current results of the bucket
+        logger.info("groupingtail.instruments.read regex_group %s groups %s\n" % (self.regex_group, self.groups))
         self.trim_groups()
         logger.info("groupingtail.instruments.read trim data %s\n" % (self.data.items()))
         self.normalise()

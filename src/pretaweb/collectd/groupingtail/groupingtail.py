@@ -9,7 +9,7 @@ import Queue
 import logging
 import logging.handlers
 
-logger = logging.getLogger("CAMAMILLA")
+logger = logging.getLogger("GROUPINGTAIL")
 
 
 class SyslogUDPHandler(SocketServer.BaseRequestHandler):
@@ -112,7 +112,7 @@ class GroupingTail(object):
                 "groupingtail.groupingtail.read_metrics match %s %s %s\n" % (instance_name, instrument, valuetype))
 
             for groupname, value in instrument.read():
-                metric_name = "%s.%s" % (groupname, instance_name)
+                metric_name = "%s*%s" % (groupname, instance_name)
                 logger.info(
                     "groupingtail.groupingtail.read_metrics metric read %s %s %s\n" % (metric_name, valuetype, value))
                 yield (metric_name, valuetype, value)

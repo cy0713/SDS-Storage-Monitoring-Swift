@@ -11,7 +11,6 @@ from mock import MagicMock, patch
 from pretaweb.collectd.groupingtail.instruments import NUM32, CounterInc
 from pretaweb.collectd.groupingtail.groupingtail import GroupingTail
 from pretaweb.collectd.groupingtail.instruments import CounterSum
-from memory_profiler import profile
 import logging
 import logging.handlers
 
@@ -34,6 +33,7 @@ def copy_lines(name, file):
         for line in data_file:
             file.write(line)
     file.flush()
+
 
 def new_grouping_tail(log_file, group_by):
     new_log = tempfile.NamedTemporaryFile(delete=False)

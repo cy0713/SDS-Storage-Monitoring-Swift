@@ -132,6 +132,56 @@ class GaugeInt(Instrument):
         self.data[groupname].append(value)
 
 
+class GaugeThroughput(Instrument):
+    def __init__(self, *args, **kwargs):
+        self.grouptime = kwargs["grouptime"]
+        del kwargs["grouptime"]
+        super(GaugeThroughput, self).__init__(*args, **kwargs)
+
+    def reset(self):
+        super(GaugeThroughput, self).reset()
+        self.data = defaultdict(list)
+        self.groups = {}
+
+    def read(self):
+        logger.info("groupingtail.instruments.gaugeint.read before super\n")
+        data_list = super(GaugeThroughput, self).read()
+        logger.info("groupingtail.instruments.gaugeint.read values %s\n", data_list)
+
+        samples = []
+        for groupname, values_list in data_list:
+            for value in values_list:
+                samples.append((groupname, value))
+
+        self.reset()
+        logger.info("groupingtail.instruments.gaugeint.read samples %s data %s\n", samples, self.data.items())
+        return samples
+
+    def append_data(self, groupname, line, mo):
+        value = self.value_cast(mo.groupdict().get(self.regex_group))
+        elapsed = self.value_cast(mo.groupdict().get(self.grouptime))
+        if elapsed > 0.0:
+            bw = value/elapsed
+        else:
+            bw = value
+        logger.info("groupingtail.instruments.gaugethroughput.append_data regex_group %s bw %s value %s / elapsed %s line %s\n",
+                    self.regex_group, bw, value, elapsed, line)
+        self.data[groupname].append(bw)
+
+    def normalise(self):
+        # Create newdata with only the members of self.groups and wrap around large integers
+        newdata = defaultdict(list)
+        logger.info("groupingtail.instruments.gaugeint.normalise group.keys %s\n" % (self.groups.keys()))
+        for groupname in self.groups.keys():
+            sample_list = list()
+            for sample in self.data[groupname]:
+                 sample_list.append(self.value_cast(sample))
+            newdata[groupname] = sample_list
+            logger.info("groupingtail.instruments.gaugeint.normalise keys %s data %s normalized %s\n" % (
+            self.groups.keys(), self.data[groupname], newdata[groupname]))
+        self.data = newdata
+
+
 class CounterInc(Instrument):
     def __init__(self, *args, **kwargs):
         kwargs["value_cast"] = (lambda x: int(x) % NUM32)
@@ -141,6 +191,11 @@ class CounterInc(Instrument):
         logger.info("groupingtail.instruments.counterinc.append_data data %s line %s\n", self.data.get(groupname, 0),
                     line)
         self.data[groupname] = self.data.get(groupname, 0) + 1
+
+    def read(self):
+        data_list = super(CounterInc, self).read()
+        self.reset()
+        return data_list
 
 
 class CounterSum(Instrument):

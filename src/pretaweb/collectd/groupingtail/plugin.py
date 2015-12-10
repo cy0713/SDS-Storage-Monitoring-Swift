@@ -44,7 +44,7 @@ def read():
     for f in files:
         instance_name = f["instance_name"]
         gt = f["grouping_tail"]
-        logger.info("groupingtail.plugin.pattern %s\n" % gt.groupmatch.pattern)
+        logger.info("groupingtail.plugin.read pattern %s\n" % gt.groupmatch.pattern)
         for metric_name, value_type, value in gt.read_metrics():
             logger.info("groupingtail.plugin.read dispatch metric %s %s %s\n" % (metric_name, value_type, value))
             v = collectd.Values(

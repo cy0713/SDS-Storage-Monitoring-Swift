@@ -1,6 +1,6 @@
 import logging
 from groupingtail import GroupingTail
-from instruments import NUM32, CounterInc, CounterSum, GaugeInt, DeriveCounter
+from instruments import NUM32, CounterInc, CounterSum, GaugeInt, DeriveCounter, GaugeThroughput
 
 _getConfFirstValue_NOVAL = object()
 
@@ -14,6 +14,20 @@ def getConfFirstValue(ob, key, default=_getConfFirstValue_NOVAL):
     if default == _getConfFirstValue_NOVAL:
         raise KeyError()
     return default
+
+
+# def getConfAllValues(ob, key, default=_getConfFirstValue_NOVAL):
+#     values = list()
+#     for o in ob.children:
+#         if o.key.lower() == key.lower():
+#             values.append(o.values[0])
+#     if default == _getConfFirstValue_NOVAL:
+#         raise KeyError()
+#     if len(values) == 0:
+#         values.append(default)
+#
+#     logger.info("groupingtail.conftools.getConfAllValues %s\n" % (values))
+#     return values
 
 
 def getConfChildren(ob, key):
@@ -54,10 +68,18 @@ def configure_derivecounter(conf):
     return DeriveCounter(regex, value_cast=value_cast, groupname=groupname)
 
 
+def configure_gaugethroughput(conf):
+    regex = getConfFirstValue(conf, "Regex")
+    groupname = getConfFirstValue(conf, "GroupName", None)
+    grouptime = getConfFirstValue(conf, "GroupTime", None)
+    return GaugeThroughput(regex, groupname=groupname, grouptime=grouptime)
+
+
 INSTRUMENTS = {
     "CounterInc": configure_counterinc,
     "CounterSumInt": configure_countersumint,
     "GaugeInt": configure_gaugeint,
+    "GaugeThroughput": configure_gaugethroughput,
     "DeriveCounter": configure_derivecounter
 }
 

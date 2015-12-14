@@ -110,7 +110,7 @@ def read_config(conf):
             # dstype determins the instrument used
             dstype = getConfFirstValue(m, "DSType")
             instrument = INSTRUMENTS[dstype](m)
-            logger.info("groupingtail.conftools.read_config minstance_name %s valuetype %s instrument %s\n" % (
+            logger.info("groupingtail.conftools.read_config instance_name %s valuetype %s instrument %s\n" % (
                 minstance_name, valuetype, instrument))
             gt.add_match(minstance_name, valuetype, instrument)
     return files

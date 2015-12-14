@@ -136,49 +136,45 @@ class GaugeThroughput(Instrument):
     def __init__(self, *args, **kwargs):
         self.grouptime = kwargs["grouptime"]
         del kwargs["grouptime"]
+        self.value_index = 0
+        self.elapsed_index = 1
         super(GaugeThroughput, self).__init__(*args, **kwargs)
 
-    def reset(self):
-        super(GaugeThroughput, self).reset()
-        self.data = defaultdict(list)
-        self.groups = {}
-
     def read(self):
-        logger.info("groupingtail.instruments.gaugeint.read before super\n")
-        data_list = super(GaugeThroughput, self).read()
-        logger.info("groupingtail.instruments.gaugeint.read values %s\n", data_list)
-
-        samples = []
-        for groupname, values_list in data_list:
-            for value in values_list:
-                samples.append((groupname, value))
+        logger.info("groupingtail.instruments.gaugethroughput.read before super\n")
+        data = super(GaugeThroughput, self).read()
 
         self.reset()
-        logger.info("groupingtail.instruments.gaugeint.read samples %s data %s\n", samples, self.data.items())
-        return samples
+        logger.info("groupingtail.instruments.gaugethroughput.read samples %s data %s\n", data, self.data.items())
+        return data
 
     def append_data(self, groupname, line, mo):
         value = self.value_cast(mo.groupdict().get(self.regex_group))
         elapsed = self.value_cast(mo.groupdict().get(self.grouptime))
-        if elapsed > 0.0:
-            bw = value/elapsed
-        else:
-            bw = value
-        logger.info("groupingtail.instruments.gaugethroughput.append_data regex_group %s bw %s value %s / elapsed %s line %s\n",
-                    self.regex_group, bw, value, elapsed, line)
-        self.data[groupname].append(bw)
+
+        logger.info("groupingtail.instruments.gaugethroughput.append_data regex_group %s value %s elapsed %s line %s\n",
+                    self.regex_group, value, elapsed, line)
+
+        current = self.data.get(groupname, [0, 0])
+        current[self.value_index] += value
+        current[self.elapsed_index] += elapsed
+        self.data[groupname] = current
 
     def normalise(self):
         # Create newdata with only the members of self.groups and wrap around large integers
-        newdata = defaultdict(list)
-        logger.info("groupingtail.instruments.gaugeint.normalise group.keys %s\n" % (self.groups.keys()))
+        newdata = {}
+        logger.info("groupingtail.instruments.gaugethroughput.normalise group.keys %s\n" % (self.groups.keys()))
         for groupname in self.groups.keys():
-            sample_list = list()
-            for sample in self.data[groupname]:
-                 sample_list.append(self.value_cast(sample))
-            newdata[groupname] = sample_list
-            logger.info("groupingtail.instruments.gaugeint.normalise keys %s data %s normalized %s\n" % (
-            self.groups.keys(), self.data[groupname], newdata[groupname]))
+            sample_list = self.data[groupname]
+            value = sample_list[self.value_index]
+            elapsed = sample_list[self.elapsed_index]
+            if elapsed > 0.0:
+                bw = value/elapsed
+            else:
+                bw = value
+            newdata[groupname] = bw
+            logger.info("groupingtail.instruments.gaugethroughput.normalise keys %s data %s normalized %s\n" % (
+                self.groups.keys(), self.data[groupname], newdata[groupname]))
         self.data = newdata
 
 

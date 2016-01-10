@@ -7,6 +7,7 @@ _getConfFirstValue_NOVAL = object()
 logger = logging.getLogger("GROUPINGTAIL")
 
 
+# Auxiliar conf method
 def getConfFirstValue(ob, key, default=_getConfFirstValue_NOVAL):
     for o in ob.children:
         if o.key.lower() == key.lower():
@@ -16,6 +17,7 @@ def getConfFirstValue(ob, key, default=_getConfFirstValue_NOVAL):
     return default
 
 
+# Auxiliar Tree method
 def getConfChildren(ob, key):
     children = []
     for o in ob.children:
@@ -76,8 +78,11 @@ def configure_gaugethroughput(conf):
 def configure_gaugetotalthroughput(conf):
     # Regex to do the matching
     regex = getConfFirstValue(conf, "Regex")
+    # Regex group name for one of the matchings, or None that invalidates the metric
     groupone = getConfFirstValue(conf, "GroupOne", None)
+    # Regex group name for other of the matchings, or None that invalidates the metric
     groupother = getConfFirstValue(conf, "GroupOther", None)
+    # Regex group name for time value, or None that invalidates the metric
     grouptime = getConfFirstValue(conf, "GroupTime", None)
     return GaugeTotalThroughput(regex, groupone=groupone, groupother=groupother, grouptime=grouptime)
 
@@ -95,7 +100,6 @@ INSTRUMENTS = {
 
 def read_config(conf):
     files = []
-    logger.info("groupingtail.conftools.read_config loop\n")
     # Read all <file>*</file> blocks in config file
     for f in getConfChildren(conf, "File"):
         instance_name = getConfFirstValue(f, 'Instance')
@@ -108,8 +112,7 @@ def read_config(conf):
         # Maximum number of groups
         maxgroups = int(getConfFirstValue(f, 'MaxGroups', 64))
 
-        logger.info("groupingtail.conftools.read_config filepath %s groupby %s groupbygroup %s\n" % (
-            filepath, groupby, groupbygroup))
+        # Create GroupingTail for this configuration
         gt = GroupingTail(filepath, groupby, groupbygroup)
 
         # List with files to check
@@ -130,8 +133,7 @@ def read_config(conf):
 
             # read and create instrument
             instrument = INSTRUMENTS[dstype](m)
-            logger.info("groupingtail.conftools.read_config instance_name %s valuetype %s instrument %s\n" % (
-                minstance_name, valuetype, instrument))
+
             # Add matching to groupingtail
             gt.add_match(minstance_name, valuetype, instrument)
     return files

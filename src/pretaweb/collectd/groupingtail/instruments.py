@@ -12,8 +12,6 @@ NUM32 = 2 ** 32
 # Parser parent class
 class Instrument(object):
     def __init__(self, regex, maxgroups=64, value_cast=float, groupname=None):
-        logger.info("groupingtail.instruments.constructor groupname %s regex %s\n" % (groupname, regex))
-
         # Compiled regex
         self.test = re.compile(regex)
         # Maxim number of groups
@@ -67,7 +65,6 @@ class Instrument(object):
     def write(self, groupname, line):
         # analise log line
         mo = self.test.match(line)
-        logger.info("groupingtail.instruments.instrument.write regex %s line %s\n", self.test.pattern, line)
         # If matching
         if mo is not None:
             try:
@@ -77,72 +74,102 @@ class Instrument(object):
                 # Contemplated error
                 pass
             except Exception as e:
-                # the instrument failed.
+                # The instrument has failed.
                 self.reset()
             else:
                 # Mark updated group
                 self.touch_group(groupname)
 
 
+# Incremental Instrument from 0 with value of line matching
 class GaugeInt(Instrument):
     def __init__(self, *args, **kwargs):
+        # Lambda function to cast into a int
         kwargs["value_cast"] = (lambda x: int(x) % NUM32)
         super(GaugeInt, self).__init__(*args, **kwargs)
 
     def read(self):
+        # Return the current results of the bucket
         data_list = super(GaugeInt, self).read()
 
+        # Empty bucket and start again
         self.reset()
         return data_list
 
     def append_data(self, groupname, line, mo):
+        # Do actual data analysis from line
         if self.regex_group:
+            # With groupname
             value = self.value_cast(mo.groupdict().get(self.regex_group))
         else:
+            # First group
             value = self.value_cast(mo.groups()[0])
 
+        # Update stored data
         self.data[groupname] = self.data.get(groupname, 0) + value
 
 
+# Throughput Instrument for one measurement
 class GaugeThroughput(Instrument):
     def __init__(self, *args, **kwargs):
         self.grouptime = kwargs["grouptime"]
         del kwargs["grouptime"]
+        # List indexs
         self.value_index = 0
         self.elapsed_index = 1
         super(GaugeThroughput, self).__init__(*args, **kwargs)
 
     def read(self):
+        # Return the current results of the bucket
         data = super(GaugeThroughput, self).read()
 
+        # Empty bucket and start again
         self.reset()
         return data
 
     def append_data(self, groupname, line, mo):
+        # Do actual data analysis from line
         if self.regex_group is not None and self.grouptime is not None:
+            # Extract value from line
             value = self.value_cast(mo.groupdict().get(self.regex_group))
+            # Extract value from line
             elapsed = self.value_cast(mo.groupdict().get(self.grouptime))
 
+            # Get current throughput info list
             current = self.data.get(groupname, [0, 0])
+            # Increment bytes transferred
             current[self.value_index] += value
+            # Increment time elapsed
             current[self.elapsed_index] += elapsed
+
+            # Update stored data
             self.data[groupname] = current
 
     def normalise(self):
         # Create newdata with only the members of self.groups and wrap around large integers
         newdata = {}
+        # For all groupingnames
         for groupname in self.groups.keys():
+            # Get throughput info list
             sample_list = self.data[groupname]
+            # Get total bytes transferred
             value = sample_list[self.value_index]
+            # Get total time elapsed
             elapsed = sample_list[self.elapsed_index]
+            # If elapsed is valid
             if elapsed > 0.0:
+                # Perfom bandwidth calculation
                 bw = value/elapsed
             else:
+                # In case of invalid time set transferred bytes
                 bw = value
             newdata[groupname] = bw
+
+        # Update stored data
         self.data = newdata
 
 
+# Throughput Instrument for combination of measurements from two different positions
 class GaugeTotalThroughput(GaugeThroughput):
     def __init__(self, *args, **kwargs):
         self.groupone = kwargs["groupone"]
@@ -152,59 +179,82 @@ class GaugeTotalThroughput(GaugeThroughput):
         super(GaugeTotalThroughput, self).__init__(*args, **kwargs)
 
     def append_data(self, groupname, line, mo):
-        elapsed = self.value_cast(mo.groupdict().get(self.grouptime))
+        # Do actual data analysis from line
         value = None
-        try:
-            value = self.value_cast(mo.groupdict().get(self.groupone))
-        except:
+        if self.grouptime is not None:
+            # Extract value from line
+            elapsed = self.value_cast(mo.groupdict().get(self.grouptime))
             try:
-                value = self.value_cast(mo.groupdict().get(self.groupother))
+                # Try to extract value one from line
+                value = self.value_cast(mo.groupdict().get(self.groupone))
             except:
-                pass
+                try:
+                    # Try to extract value other from line
+                    value = self.value_cast(mo.groupdict().get(self.groupother))
+                except:
+                    pass
 
         if value is not None:
+            # Get current throughput info list
             current = self.data.get(groupname, [0, 0])
+            # Increment bytes transferred
             current[self.value_index] += value
+            # Increment time elapsed
             current[self.elapsed_index] += elapsed
+
+            # Update stored data
             self.data[groupname] = current
 
 
+# AutoIncremental Instrument from 0 one by one
 class CounterInc(Instrument):
     def __init__(self, *args, **kwargs):
         kwargs["value_cast"] = (lambda x: int(x) % NUM32)
         super(CounterInc, self).__init__(*args, **kwargs)
 
     def append_data(self, groupname, line, mo):
+        # Update stored data
         self.data[groupname] = self.data.get(groupname, 0) + 1
 
     def read(self):
+        # Return the current results of the bucket
         data_list = super(CounterInc, self).read()
+
+        # Empty bucket and start again
         self.reset()
         return data_list
 
 
+# Not tested
 class CounterSum(Instrument):
     def append_data(self, groupname, line, mo):
+        # Do actual data analysis from line
         minimum = self.value_cast(0)
         if self.regex_group:
             groups = mo.groupdict()
             value = self.value_cast(groups.get(self.regex_group))
         else:
             value = self.value_cast(mo.groups()[0])
+
+        # Update stored data
         self.data[groupname] = self.data.get(groupname, minimum) + value
 
 
+# Not tested
 class Max(GaugeInt):
     def append_data(self, groupname, line, mo):
+        # Do actual data analysis from line
         if self.regex_group:
             value = self.value_cast(mo.groupdict().get(self.regex_group))
         else:
             value = self.value_cast(mo.groups()[0])
         current = self.data.get(groupname, None)
         if value > current or current is None:
+            # Update stored data
             self.data[groupname] = value
 
 
+# Not tested
 class DeriveCounter(CounterSum):
     def __init__(self, *args, **kwargs):
         kwargs["value_cast"] = (lambda x: int(x) % NUM32)
@@ -212,10 +262,12 @@ class DeriveCounter(CounterSum):
         self.last_read = None
 
     def reset(self):
+        # Empty bucket and start again
         super(DeriveCounter, self).reset()
         self.last_read = None
 
     def read(self):
+        # Return the current results of the bucket
         elapsed = 0
         now = time.time()
         if self.last_read is not None:

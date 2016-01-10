@@ -14,50 +14,49 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
-#
-# Configuration
-#
+# Entry point of plugin groupingtail for collectd daemon
+
+# List of dictionaries of files and matching configurations
 files = None
 
 
+# Collectd register_config implementation
 def configure(conf):
     global files
     files = read_config(conf)
-    logger.info("groupingtail.plugin.configure files to check %d\n" % (len(files)))
 
 
 #
 # Getting mesurements
 #
 def update():
-    logger.info("groupingtail.plugin.update loop over %d\n" % len(files))
+    # For all matchings in all files update its state
     for f in files:
-        logger.info("groupingtail.plugin.updating %s\n" % f)
         f["grouping_tail"].update()
 
 
+# Collectd register_read implementation
 def read():
     # this might be good in another thread
-    logger.info("groupingtail.plugin.read.update %d\n" % len(files))
     update()
-    logger.info("groupingtail.plugin.read %d\n" % len(files))
     for f in files:
         instance_name = f["instance_name"]
         gt = f["grouping_tail"]
-        logger.info("groupingtail.plugin.read pattern %s\n" % gt.groupmatch.pattern)
+
+        # Extract metrics info from all groupingtail configurations
         for metric_name, value_type, value in gt.read_metrics():
-            logger.info("groupingtail.plugin.read dispatch metric %s %s %s\n" % (metric_name, value_type, value))
+            # Create collectd value
             v = collectd.Values(
                 plugin='groupingtail',
                 plugin_instance="%s*%s" % (instance_name, metric_name),
                 type=value_type,
                 values=(value,)
             )
+
+            # Dispatch value to collectd daemon
             v.dispatch()
 
 
-# Register functions with collectd
-logger.info("groupingtail.plugin.register before\n")
+# Register functions to collectd daemon
 collectd.register_config(configure)
 collectd.register_read(read)
-logger.info("groupingtail.plugin.register after\n")
